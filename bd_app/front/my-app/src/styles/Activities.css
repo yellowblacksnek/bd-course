@@ -1,0 +1,26 @@
+.activity-item {
+    width: 300px;
+    height: 70px;
+    background-color: lightslategrey;
+    border-width: 2px;
+    border-color: darkblue;
+    margin: 20px auto;
+    flex: none;
+    display: flex;
+    align-content: center;
+    justify-content: center;
+    flex-direction: column;
+    /*margin: auto;*/
+}
+
+.activity-item-text {
+    font-size: 20px;
+}
+
+.activity-list {
+    display: flex;
+    align-content: center;
+    justify-content: center;
+    flex-direction: column;
+}
+

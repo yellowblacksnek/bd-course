@@ -1,0 +1,24 @@
+.home-container {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    /*min-height: 100%;*/
+    height: auto;
+    /*padding: 50px 50px 50px 50px;*/
+    background-color: #282c34;
+}
+
+.home-content {
+    flex: 1 0 auto;
+    /*background-color: black;*/
+    /*color: white;*/
+    width: 70vw;
+    /*min-height: 100%;*/
+}
+
+.activities-header {
+    color: white;
+    font-size: 40px;
+}
