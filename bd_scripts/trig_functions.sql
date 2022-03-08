@@ -90,9 +90,11 @@ declare
     out_states msg_states[];
     pos int;
     dec_empl_departments departments[];
+    department_array_pos int;
 begin
     in_states = array['received', 'decrypting', 'decrypted', 'delivered'];
     out_states = array['formed', 'encrypting', 'encrypted', 'planned', 'sent'];
+
     if NEW.msg_type = 'in' then
         pos = array_position(in_states, NEW.msg_state);
         if pos is NULL then raise exception 'wrong state'; end if;
@@ -133,9 +135,12 @@ begin
     if NEW.dec_empl is not NULL then
         dec_empl_departments = array(select department from Positions
         join Employee_Positions using(position_id)
-        join Employees e on e.employee_id=NEW.dec_empl);
+        join Employees e using(employee_id)
+        where e.employee_id=NEW.dec_empl);
 
-        if array_position(dec_empl_departments, 'decryption') < 1 then
+        select array_position(dec_empl_departments, 'decryption') into department_array_pos;
+
+        if department_array_pos is NULL or department_array_pos < 1 then
             return NULL;
         end if;
     end if;
@@ -205,16 +210,16 @@ begin
     restriction = (select restrict_until from People where person_id = NEW.person_id);
     
     if  restriction > NEW.start_date or
-        restriction > NEW.start_date or
         opened_violation = true or
         active_visa = true
     then
-        NEW.verdict = 'not granted';
+        NEW.verdict = 'not_granted';
         NEW.visa_app_state = 'done';
         return NEW;
     end if;
 
     if (select acc_lvl from Employees where person_id = NEW.person_id) != 'max'
+        or (select acc_lvl from Employees where person_id = NEW.person_id) is null
     then
 
         if  extract(month from age(NEW.exp_date,NEW.start_date)) > 1 or
@@ -225,7 +230,7 @@ begin
             (select count(*) from Visas where person_id = NEW.person_id) < 1 or
             (select acc_lvl from Employees where person_id = NEW.person_id) = 'restricted'
         then
-            NEW.visa_app_state = 'awaits review';
+            NEW.visa_app_state = 'awaits_review';
             return NEW;
         end if;
 
@@ -241,7 +246,7 @@ begin
                 order by exp_date desc limit 1
             )) 
         then
-            NEW.visa_app_state = 'awaits review';
+            NEW.visa_app_state = 'awaits_review';
             return NEW;
         end if;
 
@@ -258,19 +263,16 @@ begin
     then
         PERFORM visa_create(NEW.visa_app_id);
     end if;
-    if NEW.visa_app_state = 'awaits review'
-    then
-        PERFORM visa_check_create(NEW.visa_app_id);
-    end if;
+    -- if NEW.visa_app_state = 'awaits_review'
+    -- then
+    --     PERFORM visa_check_create(NEW.visa_app_id);
+    -- end if;
     return NEW;
 end; $$ language plpgsql;
 
 create or replace function visaChecksCheck() returns trigger as $$
 begin
     if exists(select 1 from Visa_checks where visa_app_id=NEW.visa_app_id and visa_check_id!=NEW.visa_check_id) then
-        return NULL;
-    end if;
-    if (select visa_app_state from Visa_applications where visa_app_id=NEW.visa_app_id) != 'awaits review' then
         return NULL;
     end if;
 

@@ -9,7 +9,6 @@ class RouteService {
   };
 
   allPages = [
-    {name:'Хуисок людей', group:'people', path:'/people'},
     {name:'Все люди', group:'people', path:'/people'},
     {name:'Все сотрудники', group:'employees', path:'/employees'},
 
@@ -19,7 +18,10 @@ class RouteService {
     {name:'Сообщения для обмена', group:'messages', path:'/messages/exchange'},
 
     {name:'Список виз', group:'visas', path:'/visas'},
-    {name:'Список заявок', group:'visas', path:'/visas/applications'}
+    {name:'Список заявок', group:'visas', path:'/visas/applications'},
+    {name:'Рассмотрение зявки', group:'visas', path:'/visas/applications/check'},
+    {name:'Список нарушений', group:'visas', path:'/violations'},
+    {name:'Рассмотрение нарушения', group:'visas', path:'/violations/check'}
   ];
 }
 

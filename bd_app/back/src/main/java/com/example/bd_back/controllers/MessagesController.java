@@ -24,7 +24,7 @@ public class MessagesController {
     @Autowired
     private MsgExchangeRepository exchangesRepository;
 
-    @PostMapping("/api/messages/schedule")
+    @PostMapping("/api/msgExchanges/schedule")
     public ResponseEntity scheduleMessage(@RequestBody HashMap<String, String> req) {
 
         if(messagesRepository == null) System.out.println("aboba");
@@ -35,6 +35,19 @@ public class MessagesController {
                     Integer.parseInt(req.get("employee")),
                     Integer.parseInt(req.get("room")),
                     LocalDateTime.parse(req.get("time")));
+        } catch (Exception e) {
+            return new ResponseEntity(getSQLExceptionMessage(e, getClass()), new HttpHeaders(), HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity("", new HttpHeaders(), HttpStatus.CREATED);
+    }
+
+    @PostMapping("/api/msgExchanges/unschedule")
+    public ResponseEntity unscheduleMessage(@RequestBody HashMap<String, String> req) {
+
+        if(messagesRepository == null) System.out.println("aboba");
+
+        try {
+            messagesRepository.unscheduleExchange(Integer.parseInt(req.get("id")));
         } catch (Exception e) {
             return new ResponseEntity(getSQLExceptionMessage(e, getClass()), new HttpHeaders(), HttpStatus.BAD_REQUEST);
         }

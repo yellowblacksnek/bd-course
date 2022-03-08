@@ -17,18 +17,33 @@ export default function ListHeader(props) {
     if(props.page && props.page.totalPages)
       return (
         <div>
+          <button onClick={() => onPageChange(false)}>{"<"}</button>
+          <button onClick={() => onPageChange(true)}>{">"}</button>
           Страница {props.page.number+1} из {props.page.totalPages+1}.
         </div>
       );
   }
 
+  const addButton = () => {
+    if(props.addHandler) {
+      return <button onClick={() => props.addHandler()}>{"+ add"}</button>
+    } else {
+      return ''
+    }
+  }
+
+  const removeButton = () => {
+    if(props.removeHandler) {
+      return <button onClick={() => props.removeHandler()}>{"- remove"}</button>
+    } else {
+      return ''
+    }
+  }
+
   return (
     <div className="list-header">
-      { props.canAdd &&
-        <button onClick={() => onPageChange(false)}>{"+ add"}</button>
-      }
-      <button onClick={() => onPageChange(false)}>{"<"}</button>
-      <button onClick={() => onPageChange(true)}>{">"}</button>
+      {addButton()}
+      {removeButton()}
       {pageTracker()}
 
     </div>

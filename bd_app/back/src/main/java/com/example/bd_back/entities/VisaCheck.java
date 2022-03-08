@@ -16,7 +16,7 @@ public class VisaCheck {
     @Column(name = "visa_app_id", nullable = false)
     private Integer visaApp;
 
-    @Column(name = "comment")
+    @Column(name = "verdict_comment")
     private String comment;
 
     @Column(name = "is_finished", nullable = false)

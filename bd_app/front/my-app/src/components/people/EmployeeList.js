@@ -1,5 +1,5 @@
-import ListPage from "./ListPage";
-import ResourceService from "../services/ResourceService";
+import ListPage from "../ListPage";
+import ResourceService from "../../services/ResourceService";
 import {useEffect, useState} from "react";
 
 export default function EmployeeList() {

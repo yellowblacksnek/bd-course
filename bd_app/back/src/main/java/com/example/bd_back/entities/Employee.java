@@ -13,9 +13,9 @@ public class Employee {
     @Column(name = "employee_id", nullable = false)
     private Integer id;
 
-//    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @Column(name = "person_id", nullable = false)
-    private Long person;
+    @OneToOne(optional = false)
+    @JoinColumn(name = "person_id", nullable = false)
+    private Person person;
 
     @Column(name = "employment_date", nullable = false)
     private LocalDate employmentDate;
@@ -64,11 +64,11 @@ public class Employee {
         this.employmentDate = employmentDate;
     }
 
-    public Long getPerson() {
+    public Person getPerson() {
         return person;
     }
 
-    public void setPerson(Long person) {
+    public void setPerson(Long Person) {
         this.person = person;
     }
 

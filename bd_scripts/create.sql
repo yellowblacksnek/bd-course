@@ -8,8 +8,8 @@ create type msg_types as enum ('in', 'out');
 create type msg_states as enum ('formed', 'encrypting', 'encrypted', 'planned', 'sent', 'received', 'decrypting', 'decrypted', 'delivered');
 create type person_states as enum ('alive', 'dead', 'unknown');
 create type visa_states as enum ('ready', 'issued', 'suspended', 'expired');
-create type visa_verdicts as enum ('granted', 'not granted');
-create type visa_app_states as enum ('awaits review', 'reviewing', 'done');
+create type visa_verdicts as enum ('granted', 'not_granted');
+create type visa_app_states as enum ('awaits_review', 'reviewing', 'done');
 
 create table if not exists People (
     person_id bigserial,
@@ -107,7 +107,7 @@ create table if not exists Visa_applications (
     start_date date not null,
     exp_date date not null,
     trans integer not null,
-    visa_app_state visa_app_states not null default 'awaits review',
+    visa_app_state visa_app_states not null default 'awaits_review',
     verdict visa_verdicts,
     verdict_date date,
 
@@ -121,7 +121,7 @@ create table if not exists Visa_applications (
 create table if not exists Visa_checks (
     visa_check_id serial,
     visa_app_id integer not null,
-    comment text,
+    verdict_comment text,
     is_finished bool not null default false,
 
     primary key (visa_check_id),

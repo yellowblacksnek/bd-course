@@ -16,11 +16,15 @@ public interface MessagesRepository extends PagingAndSortingRepository<Message, 
 //    @Override
 //    <S extends Message> S save(S entity);
 
-    Iterable<Message> findByDecEmpl(@Param("employee") Integer decEmpl);
+    Iterable<Message> findByDecEmpl(@Param("employee") Integer employee);
+    Iterable<Message> findByMsgState(@Param("state") Message.MsgStates state);
 
     @Procedure(value = "schedule_message")
     int scheduleMessage(int msgId,
                          int emplId,
                          int room,
                          LocalDateTime time);
+
+    @Procedure(value = "unschedule_exchange")
+    int unscheduleExchange(int id);
 }

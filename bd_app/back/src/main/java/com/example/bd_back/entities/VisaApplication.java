@@ -6,6 +6,9 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "visa_applications")
 public class VisaApplication {
+    public static enum VisaAppStates {awaits_review, reviewing, done}
+    public static enum VisaVerdicts {granted, not_granted}
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "visa_app_id", nullable = false)
@@ -27,10 +30,12 @@ public class VisaApplication {
     private Integer trans;
 
     @Column(name = "visa_app_state", nullable = false)
-    private String visaAppState;
+    @Enumerated(EnumType.STRING)
+    private VisaAppStates visaAppState;
 
     @Column(name = "verdict")
-    private String verdict;
+    @Enumerated(EnumType.STRING)
+    private VisaVerdicts verdict;
 
     @Column(name = "verdict_date")
     private LocalDate verdictDate;
@@ -43,19 +48,19 @@ public class VisaApplication {
         this.verdictDate = verdictDate;
     }
 
-    public String getVerdict() {
+    public VisaVerdicts getVerdict() {
         return verdict;
     }
 
-    public void setVerdict(String verdict) {
+    public void setVerdict(VisaVerdicts verdict) {
         this.verdict = verdict;
     }
 
-    public String getVisaAppState() {
+    public VisaAppStates getVisaAppState() {
         return visaAppState;
     }
 
-    public void setVisaAppState(String visaAppState) {
+    public void setVisaAppState(VisaAppStates visaAppState) {
         this.visaAppState = visaAppState;
     }
 

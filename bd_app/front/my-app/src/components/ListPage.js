@@ -1,5 +1,5 @@
 import '../styles/ListPage.css'
-import React from "react";
+import React, {useState} from "react";
 import axios from 'axios';
 import ListHeader from "./ListHeader";
 import ResourceService from "../services/ResourceService";
@@ -10,40 +10,49 @@ function ListItem(props) {
     (el) => {
       let value = String(props.item[el]);
       value = value != "null" ? value : "none";
+      // value = value.length > 30 ? value.substring(0, 30)+'...':value;
       return <td key={el}>{value}</td>;
     }
   );
 
   const handleClick = (event) => {
-    props.clickHandler(props.item);
+    if(props.clickHandler)
+      props.clickHandler(props.item);
   };
 
+  const itemClassName = props.active === props.item.id ?
+    "list-item active" : "list-item";
+
   return (
-    <tr className="list-item" onClick={handleClick}>
+    <tr className={itemClassName} onClick={handleClick}>
       {fields}
     </tr>
   );
 }
 
-class List extends React.Component{
-  constructor(props) {
-    super(props);
-    this.state = {
-      columns: []
-    }
+function List(props){
+  const [columns, setColumns] = useState([]);
+  const [active, setActive] = useState();
+
+  const handleItemClick = (item) => {
+    if(props.itemClickHandler)
+      props.itemClickHandler(item);
+
+    setActive(item.id);
   }
 
-  render() {
-    if(this.props.items.length > 0) {
+  const render = () => {
+    if(props.items.length > 0) {
 
 
-      const columns = Object.keys(this.props.items[0]).filter(
+      const columns = Object.keys(props.items[0]).filter(
         (el) => !el.startsWith("_"));
-      const listItems = this.props.items.map((item) =>
+      const listItems = props.items.map((item) =>
         <ListItem key={item.id}
+                  active={active}
                   columns={columns}
                   item={item}
-                  clickHandler={this.props.itemClickHandler}/>);
+                  clickHandler={handleItemClick}/>);
       const columnNamesCells =columns.map((col) =>
         <th key={col} style={{height: "40px"}}>{col}</th>
       );
@@ -73,6 +82,8 @@ class List extends React.Component{
       );
     }
   }
+
+  return render();
 }
 
 class ListPage extends React.Component{
@@ -87,6 +98,7 @@ class ListPage extends React.Component{
   }
 
   componentDidMount() {
+    console.log('listPage mounted');
     // if(this.props.name != "none")
       this.handlePageChange(0);
   }
@@ -106,7 +118,8 @@ class ListPage extends React.Component{
       <div className="listpage-container">
         <ListHeader pageChangehandler={this.handlePageChange}
                     page={this.state.page}
-                    canAdd={this.props.canAdd}
+                    addHandler={this.props.addHandler}
+                    removeHandler={this.props.removeHandler}
         />
         <List items={this.state.items}
               itemClickHandler={this.props.itemClickHandler}/>

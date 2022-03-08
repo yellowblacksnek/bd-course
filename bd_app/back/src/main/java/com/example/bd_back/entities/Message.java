@@ -8,6 +8,9 @@ import java.util.Set;
 @Entity
 @Table(name = "messages")
 public class Message {
+    public static enum MsgTypes {in, out};
+    public static enum MsgStates {formed, encrypting, encrypted, planned, sent, received, decrypting, decrypted, delivered};
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "msg_id", nullable = false)
@@ -32,10 +35,12 @@ public class Message {
     private Instant creationTime;
 
     @Column(name = "msg_type", nullable = false)
-    private String msgType;
+    @Enumerated(EnumType.STRING)
+    private MsgTypes msgType;
 
     @Column(name = "msg_state", nullable = false)
-    private String msgState;
+    @Enumerated(EnumType.STRING)
+    private MsgStates msgState;
 
     @OneToMany(mappedBy = "outMsg")
     private Set<MsgExchange> msgExchanges = new LinkedHashSet<>();
@@ -48,19 +53,19 @@ public class Message {
         this.msgExchanges = msgExchanges;
     }
 
-    public String getMsgState() {
+    public MsgStates getMsgState() {
         return msgState;
     }
 
-    public void setMsgState(String msgState) {
+    public void setMsgState(MsgStates msgState) {
         this.msgState = msgState;
     }
 
-    public String getMsgType() {
+    public MsgTypes getMsgType() {
         return msgType;
     }
 
-    public void setMsgType(String msgType) {
+    public void setMsgType(MsgTypes msgType) {
         this.msgType = msgType;
     }
 

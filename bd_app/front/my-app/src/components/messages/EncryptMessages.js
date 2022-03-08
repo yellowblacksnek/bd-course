@@ -6,10 +6,11 @@ import ListPage from "../ListPage";
 export default function EncryptMessages(props) {
   const [currentItem, setCurrentItem] = useState();
   const [update, setUpdate] = useState();
+  const [popupActive, setPopupActive] = useState(false);
 
   const handlePageChange = (page) =>
     ResourceService.getResourceRaw( 'messages/search/findByDecEmpl',
-      {page: page, size: 20, employee: 1072}
+      {page: page, size: 20, employee: localStorage.getItem("employee")}
     ).then( res => {
         const items = res.data["_embedded"]['messages']
           .filter(e => e.msgState == 'encrypting').map(e => ({
@@ -36,33 +37,116 @@ export default function EncryptMessages(props) {
       });
   }
 
+  const handleAdd = () => {
+    console.log('add pressed')
+    // setPopupActive(true);
+    setPopupActive(true);
+  }
+
+  const handleRemove = () => {
+    console.log('remove pressed')
+    // setPopupActive(true);
+    if(!currentItem) return;
+    const body = {
+      decEmpl: '',
+      msgState: 'formed'
+    }
+    ResourceService.updateResource(`messages/${currentItem.id}`, body)
+      .then(res => {
+        if(res.status === 200) {
+          setCurrentItem();
+          setUpdate(Date.now());
+        }
+      });
+  }
+
+  const handlePopupSubmit = () => {
+    setPopupActive(false);
+    setUpdate(Date.now());
+  }
+
   const messageContent = () => {
     if(currentItem)
       return (
-        <div>
-          Текст сообщения [{currentItem.id}]:
-          <div className="msg-processing-message">
-            {currentItem.content}
+        <div className="msg-processing-message-container">
+          <div className="msg-processing-message-header">
+            Текст сообщения [{currentItem.id}]:
+          </div>
+          <div className="msg-processing-message-wrapper">
+            <div className="msg-processing-message">
+              {currentItem.content}
+            </div>
           </div>
         </div>
       );
     else return (<div>Выберите сообщение из списка</div>);
   }
 
-  const list =
+  const list = () =>
     <ListPage
       // key={update}
       getData={handlePageChange}
       itemClickHandler={setCurrentItem}
-    />
+      addHandler={handleAdd}
+      removeHandler={handleRemove}
+    />;
 
   return (
     <ActionPage
       key={update}
-      displayedContent={messageContent}
-      list={list}
-      form={<EncryptionForm onSubmit={submitForm}/>}
-      handlePageChange={handlePageChange}/>
+      popup={<EncryptionPopup stateHandler={setPopupActive} onSubmit={handlePopupSubmit}/>}
+      popupStateHandler={{popupActive, setPopupActive}}
+      displayedContent={messageContent()}
+      list={list()}
+      form={<EncryptionForm onSubmit={submitForm}/>}/>
+      // handlePageChange={handlePageChange}/>
+      // addHandler={handleAdd}/>
+  );
+}
+
+function EncryptionPopup(props) {
+  const [currentItem, setCurrentItem] = useState();
+
+  const loadData = () => {
+    return ResourceService.getResourceRaw( 'messages/search/findByMsgState',
+      {state: "formed"}
+    ).then( res => {
+        console.log('formed received messages');
+        const items = res.data["_embedded"]['messages']
+          .map(e => ({
+            id: e.id, content: e.content
+          }));
+        return {items};
+      }
+    );
+  }
+
+  const submit = () => {
+    console.log(currentItem)
+    if(!currentItem) return;
+    ResourceService.updateResource(`messages/${currentItem.id}`,
+      {decEmpl: localStorage.getItem("employee"), msgState: 'encrypting'}
+    ).then(res => {
+      if(res.status === 200) {
+        props.onSubmit();
+        // props.stateHandler(false);
+      }
+    });
+  }
+
+  return (
+    <div className="messages-popup-container">
+      <div className="messages-popup-list-wrapper">
+        <ListPage
+          // key={update}
+          getData={loadData}
+          itemClickHandler={setCurrentItem}
+        />
+      </div>
+      <div>
+        <button onClick={submit}>Ok</button>
+      </div>
+    </div>
   );
 }
 

@@ -180,18 +180,36 @@ begin
 end; $$ language plpgsql;
 
 create or replace function visa_check_create(
-    app_id integer
+    app_id integer,
+    employee integer
 ) returns integer as $$
 declare
-    id integer;
+    check_id integer;
 begin
     insert into Visa_checks(visa_app_id)
         values(app_id)
-        returning visa_check_id into id;
+        returning visa_check_id into check_id;
+    insert into Visa_check_employees(employee_id, visa_check_id)
+        values(employee, check_id);
     update Visa_applications set 
         visa_app_state='reviewing'
         where visa_app_id=app_id;
-    return id;
+    return check_id;
+end; $$ language plpgsql;
+
+create or replace function visa_check_delete(
+    id integer
+) returns integer as $$
+declare
+    application_id integer;
+begin
+    select visa_app_id into application_id from Visa_checks where visa_check_id=id;
+    update Visa_applications set 
+        visa_app_state='awaits_review'
+        where visa_app_id=application_id;
+    delete from Visa_check_employees where visa_check_id=id;
+    delete from Visa_checks where visa_check_id=id;
+    return 1;
 end; $$ language plpgsql;
 
 -- create or replace function visa_check_assign(
@@ -212,12 +230,13 @@ create or replace function visa_check_finish(
     check_id integer,
     verd visa_verdicts,
     com text
-) returns bool as $$
+) returns int as $$
 declare
     app_id integer;
 begin
     if (select is_finished from Visa_checks where visa_check_id=check_id) = true then
-        return false;
+        raise exception 'is finished';
+        return 0;
     end if;
 
     select visa_app_id into app_id from Visa_checks where visa_check_id=check_id;
@@ -225,18 +244,20 @@ begin
     if (select visa_app_state from Visa_applications 
             where visa_app_id=app_id)
         != 'reviewing' then
-        return false;
+        raise exception 'not reviewing';
+        return 0;
     end if;
 
     if not exists(
             select 1 from Visa_check_employees
             where visa_check_id=check_id
         ) then
-        return false;
+        raise exception 'no employees';
+        return 0;
     end if;
 
     update Visa_checks set 
-        comment=com, is_finished=true
+        verdict_comment=com, is_finished=true
         where visa_check_id=check_id;
 
     update Visa_applications set 
@@ -244,7 +265,7 @@ begin
         verdict_date=current_date,
         visa_app_state='done'
         where visa_app_id=app_id;
-    return true;
+    return 1;
 end; $$ language plpgsql;
 
 create or replace function cross_check(
@@ -338,7 +359,7 @@ begin
         verdict = verd,
         restrict_until = restriction,
         verdict_date = current_date,
-        comment = com,
+        verdict_comment = com,
         is_finished = true
         where violation_check_id = check_id;
 
@@ -371,5 +392,3 @@ create cast (varchar as msg_ex_states) with inout as implicit;
 create cast (varchar as visa_verdicts) with inout as implicit;
 create cast (varchar as visa_states) with inout as implicit;
 create cast (varchar as visa_app_states) with inout as implicit;
-
-

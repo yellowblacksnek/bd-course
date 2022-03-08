@@ -48,7 +48,15 @@ class ResourceService {
   }
 
   //curl -i -X PATCH -H "Content-Type: text/uri-list" -u user:password -d "http://localhost:8080/api/employees/1008" http://localhost:8080/api/visaChecks/2/employees
-
+  addSubResource(name, newResource) {
+    return axios({
+      method: 'patch',
+      url: API_URL+name,
+      headers: { 'Content-Type': 'text/uri-list' },
+      data: API_URL+newResource,
+      auth:authHeader()
+    })
+  }
 
 }
 

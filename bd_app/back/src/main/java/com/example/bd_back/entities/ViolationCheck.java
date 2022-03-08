@@ -24,7 +24,6 @@ public class ViolationCheck {
     @Column(name = "verdict_date")
     private LocalDate verdictDate;
 
-    @Lob
     @Column(name = "comment")
     private String comment;
 

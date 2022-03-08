@@ -1,6 +1,7 @@
-import ListPage from "./ListPage";
-import ResourceService from "../services/ResourceService";
+import ListPage from "../ListPage";
+import ResourceService from "../../services/ResourceService";
 import {useEffect, useState} from "react";
+import {ActionPage} from "../ActionPage";
 
 export default function PeopleList() {
   // const [items, setItems] = useState([]);
@@ -21,11 +22,18 @@ export default function PeopleList() {
         {page: page, size: 20}
       ))
 
+  const list = () => <ListPage getData={handlePageChange}/>
+
   return (
     // <ListPage onPageChange={handlePageChange}
     //           items={items}
     //           page={page}
     // />
-    <ListPage getData={handlePageChange}/>
+    <ActionPage
+      // key={update}
+      // popup={<DecryptionPopup stateHandler={setPopupActive} onSubmit={handlePopupSubmit}/>}
+      // popupStateHandler={{popupActive, setPopupActive}}
+      list={list()}/>
+
   );
 }

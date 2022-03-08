@@ -34,28 +34,59 @@ export function ActionPage(props) {
 
   const content = props.displayedContent ?
     <div className="action-content-container">
-      {props.displayedContent()}
+      {props.displayedContent}
     </div>
     : '';
 
+  const form = props.form ?
+    <div className="action-result">
+      {props.form}
+    </div>
+    : '';
+
+  const popup = () => {
+    if(props.popup) {
+
+      const handlePopupClick = (event) => {
+        // console.log(event)
+        if(event.target.className === 'action-popup-container active')
+          props.popupStateHandler.setPopupActive(false)
+      }
+
+      // const containerClass = props.popupStateHandler.popupActive ?
+      //   'action-popup-container active' :
+      //   'action-popup-container';
+
+      return (
+        props.popupStateHandler.popupActive &&
+        <div className='action-popup-container active' onClick={handlePopupClick}>
+          <div className="action-popup">
+            {props.popup}
+          </div>
+          {/*<div className="action-dim"></div>*/}
+        </div>);
+    } else return ''
+  }
+
 
   return (
-    <div className="action-container">
-      <div className="action-task">
-        <div className="action-list-container">
-          <div className="action-list">
-            {/*<ListPage*/}
-            {/*  // key={update}*/}
-            {/*  getData={props.handlePageChange}*/}
-            {/*  clickHandler={handleItemClick}*/}
-            {/*/>*/}
-            {props.list}
+    <div className="action-page-container">
+      {popup()}
+      <div className="action-container">
+        <div className="action-task">
+          <div className="action-list-container">
+            <div className="action-list">
+              {/*<ListPage*/}
+              {/*  // key={update}*/}
+              {/*  getData={props.handlePageChange}*/}
+              {/*  clickHandler={handleItemClick}*/}
+              {/*/>*/}
+              {props.list}
+            </div>
           </div>
+          {content}
         </div>
-        {content}
-      </div>
-      <div className="action-result">
-        {props.form}
+        {form}
       </div>
     </div>
   );
