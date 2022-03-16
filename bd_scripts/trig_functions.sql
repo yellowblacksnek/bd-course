@@ -9,7 +9,7 @@ begin
     end if;    
 
     if NEW.death_date is not NULL then
-        if NEW.person_state = 'alive' or NEW.death_date > NEW.birth_date then
+        if NEW.person_state = 'alive' or NEW.death_date < NEW.birth_date then
             return NULL;
         end if;
     end if;
@@ -31,7 +31,7 @@ end;$$ language plpgsql;
 create or replace function employeesCheck() returns trigger as $$
 begin
     if (select counterpart from People where person_id = NEW.person_id) is NULL then
-        return NULL;
+        raise exception 'counterpart not found';
     end if;
 
     return NEW;
@@ -48,29 +48,9 @@ declare
     acc_levels access_levels[];
 begin
     select person_id into pers_id from Employees where employee_id = NEW.employee_id;
-    select counterpart into cp_id from People where person_id = pers_id;
-   
-    if (select department from Positions where position_id=NEW.position_id) = 'interface' then
-        if cp_id is NULL then return NULL; end if;
 
-        cp_departments = array(select department  from Positions 
-            join Employee_Positions using(position_id)
-            join Employees using(employee_id)
-            where person_id = cp_id);
-
-            -- select department  from Positions join Employee_Positions using(position_id) join Employees using(employee_id) where person_id = 73;
-
-        if array_length(cp_departments, 1) > 0 then
-            foreach cp_dep in array cp_departments loop
-                if cp_dep = 'interface' then return NULL; end if;
-            end loop;
-        end if;
-    else
-        if (select knows from People where person_id = pers_id) = false then
-            return NULL;
-        end if;
-    end if; 
-
+    perform employment_check(pers_id, NEW.position_id);
+    
     select acc_lvl into cur_acc from Employees where employee_id=NEW.employee_id;
     select acc_lvl into pos_acc from Positions where position_id=NEW.position_id;
 
@@ -190,92 +170,27 @@ declare
     close_relations relation_types[];
 begin
     if exists(select 1 from Visa_applications where person_id=NEW.person_id and visa_app_state!='done') = true then
-        return NULL;
+        raise exception 'active application exists';
     end if;
 
-    opened_violation = false;
-    if exists(select 1 from Violations
-        where person_id=NEW.person_id
-        and is_closed = false) then
-            opened_violation = true;
-    end if;
-
-    active_visa = false;
-    if exists(select 1 from Visas
-        where person_id=NEW.person_id
-        and exp_date > NEW.start_date) then
-            active_visa = true;
-    end if;
-
-    restriction = (select restrict_until from People where person_id = NEW.person_id);
-    
-    if  restriction > NEW.start_date or
-        opened_violation = true or
-        active_visa = true
-    then
-        NEW.verdict = 'not_granted';
-        NEW.visa_app_state = 'done';
-        return NEW;
-    end if;
-
-    if (select acc_lvl from Employees where person_id = NEW.person_id) != 'max'
-        or (select acc_lvl from Employees where person_id = NEW.person_id) is null
-    then
-
-        if  extract(month from age(NEW.exp_date,NEW.start_date)) > 1 or
-            NEW.trans > 4 or
-            (select count(*) from Employees where person_id = NEW.person_id) < 1 or
-            (select counterpart from People where person_id = NEW.person_id) is null or
-            (select person_state from People where counterpart = NEW.person_id) = 'unknown' or
-            (select count(*) from Visas where person_id = NEW.person_id) < 1 or
-            (select acc_lvl from Employees where person_id = NEW.person_id) = 'restricted'
-        then
-            NEW.visa_app_state = 'awaits_review';
-            return NEW;
-        end if;
-
-        close_relations = array['parent', 'sibling', 'child', 'spouse'];
-        if  exists(select 1 from Person_relations
-            join People on object=person_id where
-            subject = NEW.person_id and
-            array_position(close_relations, relation_type) < 1 and
-            person_state = 'dead' and
-            death_date < (
-                select exp_date from Visas
-                where person_id = NEW.person_id
-                order by exp_date desc limit 1
-            )) 
-        then
-            NEW.visa_app_state = 'awaits_review';
-            return NEW;
-        end if;
-
-    end if;
-
-    NEW.verdict = 'granted';
-    NEW.visa_app_state = 'done';
+    -- if (select birth_dim from People where person_id=-1) != (select birth_dim from People where person_id=NEW.person_id)
+    -- and not exists(select 1 from Employees where person_id=NEW.person_id)
+    -- then
+    --     raise exception 'person from another dim';
+    -- end if;
     return NEW;
 end; $$ language plpgsql;
 
 create or replace function visaApplAfterCheck() returns trigger as $$
 begin
-    if NEW.visa_app_state = 'done' and NEW.verdict = 'granted'
-    then
-        PERFORM visa_create(NEW.visa_app_id);
+    if NEW.visa_app_state = 'awaits_review' then
+        perform visa_application_autocheck(NEW.visa_app_id);
     end if;
-    -- if NEW.visa_app_state = 'awaits_review'
-    -- then
-    --     PERFORM visa_check_create(NEW.visa_app_id);
-    -- end if;
     return NEW;
 end; $$ language plpgsql;
 
 create or replace function visaChecksCheck() returns trigger as $$
 begin
-    if exists(select 1 from Visa_checks where visa_app_id=NEW.visa_app_id and visa_check_id!=NEW.visa_check_id) then
-        return NULL;
-    end if;
-
     if NEW.is_finished then
         if not exists(
             select 1 from Visa_check_employees
@@ -302,7 +217,7 @@ end; $$ language plpgsql;
 
 create or replace function visasCheck() returns trigger as $$
 begin
-    if (select verdict from Visa_applications where visa_app_id = NEW.visa_application)
+    if (select verdict from Visa_checks where visa_app_id = NEW.visa_application)
         != 'granted' then return NULL; end if;
     
     if NEW.visa_state = 'issued' then
@@ -322,20 +237,18 @@ end; $$ language plpgsql;
 
 create or replace function violationChecksCheck() returns trigger as $$
 begin
-    if (select count(*) from Violation_checks
-        where violation_id=NEW.violation_id and
-        is_finished = false) > 1 then
-        return NULL; 
-    end if;
-
     if NEW.is_finished then
         if NEW.verdict is null or not exists(
             select 1 from Violation_check_employees
             where violation_check_id=NEW.violation_check_id
-        ) then
-        return NULL; end if;
-    end if;
+        ) then 
+            return NULL; 
+        end if;
 
+        if NEW.verdict != 'restriction'::violation_verdicts then
+            NEW.restrict_until = NULL;
+        end if;
+    end if;
     return NEW;
 end; $$ language plpgsql;
 

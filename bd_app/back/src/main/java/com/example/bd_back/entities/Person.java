@@ -6,6 +6,10 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "people")
 public class Person {
+
+    public static enum Dimensions {alpha, prime};
+    public static enum PersonStates {alive, dead, unknown};
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "person_id", nullable = false)
@@ -25,10 +29,12 @@ public class Person {
     private Long counterpart;
 
     @Column(name = "birth_dim", nullable = false)
-    private String birthDim;
+    @Enumerated(EnumType.STRING)
+    private Dimensions birthDim;
 
     @Column(name = "current_dim")
-    private String currentDim;
+    @Enumerated(EnumType.STRING)
+    private Dimensions currentDim;
 
     @Column(name = "knows")
     private Boolean knows;
@@ -37,7 +43,8 @@ public class Person {
     private LocalDate restrictUntil;
 
     @Column(name = "person_state", nullable = false)
-    private String personState;
+    @Enumerated(EnumType.STRING)
+    private PersonStates personState;
 
     @Column(name = "death_date")
     private LocalDate deathDate;
@@ -67,11 +74,11 @@ public class Person {
         this.deathDate = deathDate;
     }
 
-    public String getPersonState() {
+    public PersonStates getPersonState() {
         return personState;
     }
 
-    public void setPersonState(String personState) {
+    public void setPersonState(PersonStates personState) {
         this.personState = personState;
     }
 
@@ -91,19 +98,19 @@ public class Person {
         this.knows = knows;
     }
 
-    public String getCurrentDim() {
+    public Dimensions getCurrentDim() {
         return currentDim;
     }
 
-    public void setCurrentDim(String currentDim) {
+    public void setCurrentDim(Dimensions currentDim) {
         this.currentDim = currentDim;
     }
 
-    public String getBirthDim() {
+    public Dimensions getBirthDim() {
         return birthDim;
     }
 
-    public void setBirthDim(String birthDim) {
+    public void setBirthDim(Dimensions birthDim) {
         this.birthDim = birthDim;
     }
 

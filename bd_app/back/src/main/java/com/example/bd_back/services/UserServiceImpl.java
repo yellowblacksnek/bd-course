@@ -22,16 +22,29 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    public UserEntity save(UserEntity user) {
-        Optional<UserEntity> existing = userRepository.findById(user.getUsername());
-        if(existing.isPresent()) return null;
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userRepository.save(user);
+    public boolean checkEmployeeExists(UserEntity user) {
+        Optional<UserEntity> existing = userRepository.findByEmployee(user.getEmployee());
+        return existing.isPresent();
     }
 
-    @Override
-    public boolean saveIfNotExists(UserEntity user) {
-        return save(user) != null;
+    @Transactional
+    public boolean checkUsernameExists(UserEntity user) {
+        Optional<UserEntity> existing = userRepository.findById(user.getUsername());
+        return existing.isPresent();
+    }
+
+//    @Transactional
+//    public UserEntity save(UserEntity user) {
+//        Optional<UserEntity> existing = userRepository.findByEmployee(user.getEmployee());
+//        if(existing.isPresent()) return null;
+//        user.setPassword(passwordEncoder.encode(user.getPassword()));
+//        return userRepository.save(user);
+//    }
+
+    @Transactional
+    public UserEntity save(UserEntity user) {
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        return userRepository.save(user);
     }
 
     @Override

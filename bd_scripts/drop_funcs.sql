@@ -32,8 +32,13 @@ drop function if exists exchange_fail(
 );
 
 drop function if exists visa_check_create(
-    app_id integer
+    app_id integer,
+    employee integer
 );
+
+drop function if exists visa_check_delete(
+    id integer
+) ;
 
 drop function if exists visa_check_finish(
     check_id integer,
@@ -58,4 +63,19 @@ drop function if exists violation_finish(
     com text
 );
 
+drop function if exists violation_check_create(
+    violation integer,
+    employee integer
+);
+
+drop function if exists violation_check_delete(
+    id integer
+);
+
+drop function if exists hire_employee(
+    person bigint,
+    pos integer,
+    access access_levels,
+    hire_date date
+);
 

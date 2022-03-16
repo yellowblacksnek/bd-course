@@ -4,13 +4,11 @@ import javax.persistence.*;
 import java.time.Instant;
 
 @Entity
-//@NamedStoredProcedureQuery(name="MsgExchange.report", procedureName = "report_exchange", parameters = {
-//        @StoredProcedureParameter(mode = ParameterMode.IN, name="ex_state_text", type = String.class),
-//        @StoredProcedureParameter(mode = ParameterMode.IN, name="exc_id", type = Integer.class),
-//        @StoredProcedureParameter(mode = ParameterMode.IN, name="msg_text", type = String.class)
-//})
 @Table(name = "msg_exchanges")
 public class MsgExchange {
+
+    public static enum MsgExStates {scheduled, ok, fail}
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "msg_exc_id", nullable = false)
@@ -35,13 +33,14 @@ public class MsgExchange {
     private Integer inMsg;
 
     @Column(name = "msg_ex_state", nullable = false)
-    private String msgExState;
+    @Enumerated(EnumType.STRING)
+    private MsgExStates msgExState;
 
-    public String getMsgExState() {
+    public MsgExStates getMsgExState() {
         return msgExState;
     }
 
-    public void setMsgExState(String msgExState) {
+    public void setMsgExState(MsgExStates msgExState) {
         this.msgExState = msgExState;
     }
 

@@ -6,7 +6,7 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "visa_applications")
 public class VisaApplication {
-    public static enum VisaAppStates {awaits_review, reviewing, done}
+    public static enum VisaAppStates {awaits_review, reviewing, ready, done}
     public static enum VisaVerdicts {granted, not_granted}
 
     @Id
@@ -14,8 +14,9 @@ public class VisaApplication {
     @Column(name = "visa_app_id", nullable = false)
     private Integer id;
 
-    @Column(name = "person_id", nullable = false)
-    private Long person;
+    @OneToOne(optional = false)
+    @JoinColumn(name = "person_id", nullable = false)
+    private Person person;
 
     @Column(name = "application_date", nullable = false)
     private LocalDate applicationDate;
@@ -33,28 +34,7 @@ public class VisaApplication {
     @Enumerated(EnumType.STRING)
     private VisaAppStates visaAppState;
 
-    @Column(name = "verdict")
-    @Enumerated(EnumType.STRING)
-    private VisaVerdicts verdict;
-
-    @Column(name = "verdict_date")
-    private LocalDate verdictDate;
-
-    public LocalDate getVerdictDate() {
-        return verdictDate;
-    }
-
-    public void setVerdictDate(LocalDate verdictDate) {
-        this.verdictDate = verdictDate;
-    }
-
-    public VisaVerdicts getVerdict() {
-        return verdict;
-    }
-
-    public void setVerdict(VisaVerdicts verdict) {
-        this.verdict = verdict;
-    }
+    public Long getPersonId() {return this.person.getId();}
 
     public VisaAppStates getVisaAppState() {
         return visaAppState;
@@ -96,11 +76,11 @@ public class VisaApplication {
         this.applicationDate = applicationDate;
     }
 
-    public Long getPerson() {
+    public Person getPerson() {
         return person;
     }
 
-    public void setPerson(Long person) {
+    public void setPerson(Person person) {
         this.person = person;
     }
 

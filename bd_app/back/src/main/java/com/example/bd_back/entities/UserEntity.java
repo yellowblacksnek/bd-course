@@ -13,7 +13,7 @@ public class UserEntity implements UserDetails{
     @Column(name = "username", nullable = false)
     private String username;
 
-    @Column(name = "employee_id")
+    @Column(name = "employee_id", unique = true)
     private Integer employee;
 
     @Column(name = "password")

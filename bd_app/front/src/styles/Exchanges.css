@@ -1,0 +1,11 @@
+.exchanges-popup-container {
+    height: 100%;
+}
+
+.exchanges-popup-list-wrapper {
+    margin-bottom: 20px;
+    height: 70%;
+    border-radius: 10px;
+    border: 4px solid black;
+    padding: 10px;
+}

@@ -1,5 +1,7 @@
 package com.example.bd_back.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.time.LocalDate;
 
@@ -37,7 +39,8 @@ public class Visa {
     @Column(name = "cur_trans", nullable = false)
     private Integer curTrans;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JsonIgnore
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "visa_application", nullable = false)
     private VisaApplication visaApplication;
 

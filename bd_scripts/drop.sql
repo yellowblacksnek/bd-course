@@ -10,6 +10,21 @@
 -- create type visa_states as enum ('ready', 'issued', 'suspended', 'expired');
 -- create type visa_verdicts as enum ('granted', 'not granted');
 
+drop cast if exists (varchar as dimensions);
+drop cast if exists (varchar as violation_verdicts);
+drop cast if exists (varchar as departments);
+drop cast if exists (varchar as access_levels) ;
+drop cast if exists (varchar as relation_types) ;
+drop cast if exists (varchar as person_states) ;
+drop cast if exists (varchar as msg_types) ;
+drop cast if exists (varchar as msg_states) ;
+drop cast if exists (varchar as msg_ex_states) ;
+drop cast if exists (varchar as visa_verdicts) ;
+drop cast if exists (varchar as visa_states) ;
+drop cast if exists (varchar as visa_app_states) ;
+drop cast if exists (varchar as violation_states);
+
+drop table if exists users;
 drop table if exists violation_check_employees;
 drop table if exists violation_checks;
 drop table if exists violations;
@@ -37,4 +52,5 @@ msg_states,
 person_states,
 visa_states,
 visa_verdicts,
-visa_app_states;
+visa_app_states,
+violation_states;

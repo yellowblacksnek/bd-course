@@ -2,21 +2,22 @@ create type dimensions as enum ('alpha', 'prime');
 create type departments as enum ('interface', 'decryption', 'analysis', 'strategy', 'operations', 'customs', 'diplomacy');
 create type access_levels as enum ('restricted', 'standard', 'high', 'max');
 create type relation_types as enum ('parent', 'grandparent', 'sibling', 'cousin', 'family member', 'child', 'friend', 'coworker', 'spouse', 'partner', 'ex-spouse', 'ex-partner', 'other');
-create type violation_verdicts as enum ('restriction', 'warning', 'no action');
+create type violation_verdicts as enum ('restriction', 'warning', 'no_action');
 create type msg_ex_states as enum ('scheduled', 'ok', 'fail');
 create type msg_types as enum ('in', 'out');
 create type msg_states as enum ('formed', 'encrypting', 'encrypted', 'planned', 'sent', 'received', 'decrypting', 'decrypted', 'delivered');
 create type person_states as enum ('alive', 'dead', 'unknown');
 create type visa_states as enum ('ready', 'issued', 'suspended', 'expired');
 create type visa_verdicts as enum ('granted', 'not_granted');
-create type visa_app_states as enum ('awaits_review', 'reviewing', 'done');
+create type visa_app_states as enum ('awaits_review', 'reviewing', 'ready', 'done');
+create type violation_states as enum ('awaits_review', 'reviewing', 'done');
 
 create table if not exists People (
     person_id bigserial,
     first_name text not null,
     last_name text not null,
     birth_date date,
-    counterpart bigint,
+    counterpart bigint unique,
     birth_dim dimensions not null,
     current_dim dimensions,
     knows bool default false,
@@ -25,7 +26,7 @@ create table if not exists People (
     death_date date,
 
     primary key (person_id),
-    foreign key (counterpart) references People
+    foreign key (counterpart) references People on delete set null
 );
 
 create table if not exists Person_relations (
@@ -108,8 +109,6 @@ create table if not exists Visa_applications (
     exp_date date not null,
     trans integer not null,
     visa_app_state visa_app_states not null default 'awaits_review',
-    verdict visa_verdicts,
-    verdict_date date,
 
     primary key (visa_app_id),
     foreign key (person_id) references People,
@@ -120,7 +119,9 @@ create table if not exists Visa_applications (
 
 create table if not exists Visa_checks (
     visa_check_id serial,
-    visa_app_id integer not null,
+    visa_app_id integer unique not null,
+    verdict visa_verdicts,
+    verdict_date date,
     verdict_comment text,
     is_finished bool not null default false,
 
@@ -172,7 +173,7 @@ create table if not exists Violations (
     violation_type integer not null,
     description text,
     issue_date date not null,
-    is_closed bool not null default false,
+    violation_state violation_states not null default 'awaits_review',
 
     primary key (violation_id),
     foreign key (person_id) references People,
@@ -181,11 +182,11 @@ create table if not exists Violations (
 
 create table if not exists Violation_checks (
     violation_check_id serial,
-    violation_id integer not null,
+    violation_id integer unique not null,
     verdict violation_verdicts,
     restrict_until date,
     verdict_date date,
-    comment text,
+    verdict_comment text,
     is_finished bool not null default false,
 
     primary key (violation_check_id),
@@ -210,7 +211,45 @@ create table if not exists Users (
     foreign key (employee_id) references Employees
 );
 
+insert into positions(department, name, acc_lvl) values('interface', 'low pos in interface', 'restricted');
+insert into positions(department, name, acc_lvl) values('interface', 'mid pos in interface', 'standard');
+insert into positions(department, name, acc_lvl) values('interface', 'high pos in interface', 'high');
 
+insert into positions(department, name, acc_lvl) values('decryption', 'low pos in decryption', 'restricted');
+insert into positions(department, name, acc_lvl) values('decryption', 'mid pos in decryption', 'standard');
+insert into positions(department, name, acc_lvl) values('decryption', 'high pos in decryption', 'high');
+
+insert into positions(department, name, acc_lvl) values('analysis', 'low pos in analysis', 'standard');
+insert into positions(department, name, acc_lvl) values('analysis', 'mid pos in analysis', 'standard');
+insert into positions(department, name, acc_lvl) values('analysis', 'high pos in analysis', 'high');
+
+insert into positions(department, name, acc_lvl) values( 'strategy', 'low pos in strategy', 'standard');
+insert into positions(department, name, acc_lvl) values( 'strategy', 'mid pos in strategy', 'standard');
+insert into positions(department, name, acc_lvl) values( 'strategy', 'high pos in strategy', 'high');
+
+insert into positions(department, name, acc_lvl) values( 'operations', 'low pos in operations', 'standard');
+insert into positions(department, name, acc_lvl) values( 'operations', 'mid pos in operations', 'standard');
+insert into positions(department, name, acc_lvl) values( 'operations', 'high pos in operations', 'high');
+
+insert into positions(department, name, acc_lvl) values( 'customs', 'low pos in customs', 'standard');
+insert into positions(department, name, acc_lvl) values( 'customs', 'mid pos in customs', 'standard');
+insert into positions(department, name, acc_lvl) values( 'customs', 'high pos in customs', 'high');
+
+insert into positions(department, name, acc_lvl) values( 'diplomacy', 'low pos in diplomacy', 'standard');
+insert into positions(department, name, acc_lvl) values( 'diplomacy', 'mid pos in diplomacy', 'standard');
+insert into positions(department, name, acc_lvl) values( 'diplomacy', 'high pos in diplomacy', 'high');
+
+insert into positions values(-1, 'customs', 'internal', 'standard');
+insert into people(person_id, first_name, last_name, counterpart, birth_dim, knows, person_state)
+values(-1, ' ', ' ', -1, 'alpha', true, 'alive');
+insert into employees values(-1, -1, current_date, 'max');
+insert into Employee_positions values(-1, 3);
+insert into Employee_positions values(-1, 6);
+insert into Employee_positions values(-1, 9);
+insert into Employee_positions values(-1, 12);
+insert into Employee_positions values(-1, 15);
+insert into Employee_positions values(-1, 18);
+insert into Employee_positions values(-1, 21);
 
 
 

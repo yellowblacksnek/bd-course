@@ -6,14 +6,16 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "violations")
 public class Violation {
+    public static enum ViolationStates {awaits_review, reviewing, done}
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "violation_id", nullable = false)
     private Integer id;
 
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "person_id", nullable = false)
-    private Long person;
+    @OneToOne(optional = false)
+    @JoinColumn(name = "person_id", nullable = false)
+    private Person person;
 
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "violation_type", nullable = false)
@@ -25,15 +27,18 @@ public class Violation {
     @Column(name = "issue_date", nullable = false)
     private LocalDate issueDate;
 
-    @Column(name = "is_closed", nullable = false)
-    private Boolean isClosed = false;
+    @Column(name = "violation_state", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private ViolationStates violationState;
 
-    public Boolean getIsClosed() {
-        return isClosed;
+    public Long getPersonId() {return this.person.getId();}
+
+    public ViolationStates getViolationState() {
+        return violationState;
     }
 
-    public void setIsClosed(Boolean isClosed) {
-        this.isClosed = isClosed;
+    public void setViolationState(ViolationStates violationState) {
+        this.violationState = violationState;
     }
 
     public LocalDate getIssueDate() {
@@ -60,11 +65,11 @@ public class Violation {
         this.violationType = violationType;
     }
 
-    public Long getPerson() {
+    public Person getPerson() {
         return person;
     }
 
-    public void setPerson(Long person) {
+    public void setPerson(Person person) {
         this.person = person;
     }
 

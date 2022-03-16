@@ -1,11 +1,12 @@
-create or replace function visa_create(app_id integer) returns void as $$
+create or replace function visa_create(app_id integer) returns int as $$
 declare
     -- app_state visa_app_states;
     -- verd visa_verdicts;
     app Visa_applications;
+    res int;
 begin
     select * into app from Visa_applications where visa_app_id=app_id;
-    if app.visa_app_state = 'done' and app.verdict = 'granted'
+    if app.visa_app_state = 'ready'
     then
         insert into Visas(
             person_id, 
@@ -24,8 +25,12 @@ begin
             app.visa_app_id,
 
             'ready',
-            0);
+            0) returning visa_id into res;
+
+        update Visa_applications set visa_app_state='done' where visa_app_id=app_id;
+        return res;
     end if;
+    raise exception 'application not ready';
 end; $$ language plpgsql;
 
 create or replace function check_time(
@@ -97,10 +102,11 @@ create or replace function create_out_message(
     msg_text text,
     sender_id bigint,
     recipient_id bigint
-) returns integer as $$
+) returns Messages as $$
 declare
     new_id integer;
     dims dimensions[];
+    msg Messages;
 begin
     -- if not exists (select 1 from People where person_id=sender_id) or
     --    not exists (select 1 from People where person_id=recipient_id)
@@ -108,14 +114,17 @@ begin
 
     dims = array(select current_dim from People where person_id=sender_id or person_id=recipient_id);
     if array_length(dims, 1) = 2 then
-        if dims[1] = dims[2] then return NULL; end if;
-    else return NULL;
+        if dims[1] = dims[2] then 
+        raise exception 'same dimension'; 
+    end if;
+    else 
+        raise exception 'wrong sender or/and recipient id';
     end if;
 
     insert into Messages(sender, recipient, content, creation_time, msg_type, msg_state)
     values(sender_id, recipient_id, msg_text, now()::timestamp, 'out','formed')
-    returning msg_id into new_id;
-    return new_id;
+    returning * into msg;
+    return msg;
 end; $$ language plpgsql;
 
 create or replace function create_in_message(
@@ -186,6 +195,14 @@ create or replace function visa_check_create(
 declare
     check_id integer;
 begin
+    if employee=-1 then
+        select visa_check_id into check_id from Visa_checks where visa_app_id=app_id;
+        if check_id is not null then
+            perform visa_check_assign(check_id, employee);
+            return check_id;
+        end if;
+    end if;
+
     insert into Visa_checks(visa_app_id)
         values(app_id)
         returning visa_check_id into check_id;
@@ -212,19 +229,17 @@ begin
     return 1;
 end; $$ language plpgsql;
 
--- create or replace function visa_check_assign(
---     check_id integer,
---     empl_id integer
--- ) returns bool as $$
--- declare
---     res bool;
--- begin
---     res = false;
---     insert into Visa_check_employees(visa_check_id, employee_id)
---         values(check_id, empl_id)
---         returning true into res;
---     return res;
--- end; $$ language plpgsql;
+create or replace function visa_check_assign(
+    check_id integer,
+    empl_id integer
+) returns void as $$
+begin
+    if empl_id=-1 and exists(select 1 from Visa_check_employees where visa_check_id=check_id and employee_id=empl_id)
+    then return; end if;
+
+    insert into Visa_check_employees(visa_check_id, employee_id)
+        values(check_id, empl_id);
+end; $$ language plpgsql;
 
 create or replace function visa_check_finish(
     check_id integer,
@@ -234,6 +249,7 @@ create or replace function visa_check_finish(
 declare
     app_id integer;
 begin
+raise notice '%', check_id;
     if (select is_finished from Visa_checks where visa_check_id=check_id) = true then
         raise exception 'is finished';
         return 0;
@@ -257,14 +273,21 @@ begin
     end if;
 
     update Visa_checks set 
-        verdict_comment=com, is_finished=true
+        verdict_comment=com, 
+        is_finished=true,
+        verdict=verd,
+        verdict_date=current_date
         where visa_check_id=check_id;
 
-    update Visa_applications set 
-        verdict=verd,
-        verdict_date=current_date,
+    if verd = 'granted' then
+        update Visa_applications set 
+            visa_app_state='ready'
+            where visa_app_id=app_id;
+    else
+        update Visa_applications set 
         visa_app_state='done'
         where visa_app_id=app_id;
+    end if;
     return 1;
 end; $$ language plpgsql;
 
@@ -340,7 +363,7 @@ create or replace function violation_finish(
     verd violation_verdicts,
     restriction date,
     com text
-) returns bool as $$
+) returns int as $$
 declare
     violation integer;
     person bigint;
@@ -349,7 +372,7 @@ begin
             select 1 from Violation_check_employees
             where violation_check_id=check_id
         ) 
-    then return false;
+    then return 0;
     end if;
 
     select violation_id into violation from Violation_checks 
@@ -363,7 +386,7 @@ begin
         is_finished = true
         where violation_check_id = check_id;
 
-    update Violations set is_closed = true
+    update Violations set violation_state = 'done'
         where violation_id = violation;
 
     select person_id into person from Violations
@@ -377,9 +400,187 @@ begin
             where person_id = person and
                 visa_state != 'expired';
     end if;
-    return true;
+    return 1;
 end; $$ language plpgsql;
 
+create or replace function violation_check_create(
+    violation integer,
+    employee integer
+) returns integer as $$
+declare
+    check_id integer;
+begin
+    insert into Violation_checks(violation_id)
+        values(violation)
+        returning violation_check_id into check_id;
+    insert into Violation_check_employees(employee_id, violation_check_id)
+        values(employee, check_id);
+    update Violations set 
+        violation_state='reviewing'
+        where violation_id=violation;
+    return check_id;
+end; $$ language plpgsql;
+
+create or replace function violation_check_delete(
+    id integer
+) returns integer as $$
+declare
+    violation integer;
+begin
+    select violation_id into violation from Violation_checks where violation_check_id=id;
+    update Violations set 
+        violation_state='awaits_review'
+        where violation_id=violation;
+    delete from Violation_check_employees where violation_check_id=id;
+    delete from Violation_checks where violation_check_id=id;
+    return 1;
+end; $$ language plpgsql;
+
+create or replace function hire_employee(
+    person bigint,
+    pos integer,
+    access access_levels,
+    hire_date date
+) returns integer as $$
+declare
+    employee integer;
+begin
+    select employee_id into employee from Employees where person_id=person;
+    if employee is null then
+        insert into Employees(person_id, employment_date, acc_lvl)
+        values(person, hire_date, access) returning employee_id into employee;
+    end if;
+
+    insert into Employee_positions values (employee, pos);
+    return 1;
+end; $$ language plpgsql;
+
+create or replace function hire_employee(
+    person bigint,
+    pos integer,
+    access access_levels,
+    hire_date date
+) returns integer as $$
+declare
+    employee integer;
+begin
+    perform employment_check(person, pos);
+    select employee_id into employee from Employees where person_id=person;
+    if employee is null then
+        insert into Employees(person_id, employment_date, acc_lvl)
+        values(person, hire_date, access) returning employee_id into employee;
+    end if;
+    
+    insert into Employee_positions values (employee, pos);
+    return employee;
+end; $$ language plpgsql;
+
+create or replace function employment_check(
+    person bigint,
+    pos integer
+) returns integer as $$
+declare
+    cp_id bigint;
+    cp_dep departments;
+    cp_departments departments[];
+begin
+    select counterpart into cp_id from People where person_id = person;
+   
+    if (select department from Positions where position_id=pos) = 'interface' then
+        if cp_id is NULL then raise exception 'no counterpart'; end if;
+
+        cp_departments = array(select department  from Positions 
+            join Employee_Positions using(position_id)
+            join Employees using(employee_id)
+            where person_id = cp_id);
+
+
+        if array_length(cp_departments, 1) > 0 then
+            foreach cp_dep in array cp_departments loop
+                if cp_dep = 'interface' then raise exception 'counterpart in interface'; end if;
+            end loop;
+        end if;
+    else
+        if (select knows from People where person_id = person) = false then
+            raise exception 'non-interface must know';
+        end if;
+    end if; 
+    return 1;
+end;$$ language plpgsql;
+
+
+create or replace function visa_application_autocheck(id integer) returns int as $$
+declare
+    person bigint;
+    close_relations relation_types[];
+    app Visa_applications;
+    check_id integer;
+begin
+    -- person = (select person_id from Visa_applications where visa_app_id=id);
+    select * into app from Visa_applications where visa_app_id=id;
+    person = app.person_id;
+
+    if exists(select 1 from Violations
+        where person_id=person
+        and violation_state != 'done') then
+            select visa_check_create(id, -1) into check_id;
+            perform visa_check_finish(check_id, 'not_granted', 'has opened violation');
+            return 0;
+    end if;
+
+    if exists(select 1 from Visas
+        where person_id=person
+        and exp_date > app.start_date) then
+            select visa_check_create(id, -1) into check_id;
+            perform visa_check_finish(check_id, 'not_granted', 'has active visa');
+            return 0;
+    end if;
+
+    if  (select restrict_until from People where person_id = person) > app.start_date
+    then
+        select visa_check_create(id, -1) into check_id;
+        perform visa_check_finish(check_id, 'not_granted', 'has active restriction');
+        return 0;
+    end if;
+
+    if (select acc_lvl from Employees where person_id = person) != 'max'
+        or (select acc_lvl from Employees where person_id = person) is null
+    then
+
+        if  extract(month from age(app.exp_date,app.start_date)) > 1 or
+            app.trans > 4 or
+            (select count(*) from Employees where person_id = person) < 1 or
+            (select counterpart from People where person_id = person) is null or
+            (select person_state from People where counterpart = person) = 'unknown' or
+            (select count(*) from Visas where person_id = person) < 1 or
+            (select acc_lvl from Employees where person_id = person) = 'restricted'
+        then
+            return 0;
+        end if;
+
+        close_relations = array['parent', 'sibling', 'child', 'spouse'];
+        if  exists(select 1 from Person_relations
+            join People on object=person_id where
+            subject = person and
+            array_position(close_relations, relation_type) < 1 and
+            person_state = 'dead' and
+            death_date < (
+                select exp_date from Visas
+                where person_id = person
+                order by exp_date desc limit 1
+            )) 
+        then
+            return 0;
+        end if;
+
+    end if;
+
+    select visa_check_create(id, -1) into check_id;
+    perform visa_check_finish(check_id, 'granted', 'auto granted');
+    return 1;
+end; $$ language plpgsql;
+
+-- select visa_application_autocheck(6052);
 create cast (varchar as dimensions) with inout as implicit;
 create cast (varchar as violation_verdicts) with inout as implicit;
 create cast (varchar as departments) with inout as implicit;
@@ -392,3 +593,7 @@ create cast (varchar as msg_ex_states) with inout as implicit;
 create cast (varchar as visa_verdicts) with inout as implicit;
 create cast (varchar as visa_states) with inout as implicit;
 create cast (varchar as visa_app_states) with inout as implicit;
+create cast (varchar as violation_states) with inout as implicit;
+
+-- update People a set counterpart = p.person_id from (select * from People where counterpart is not NULL) p where p.counterpart=a.person_id;
+-- update People a set knows = true where counterpart is not null and person_id % 2=0;

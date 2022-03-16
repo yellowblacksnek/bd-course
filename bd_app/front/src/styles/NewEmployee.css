@@ -1,0 +1,33 @@
+.person-select {
+    /*display: none;*/
+    /*position: absolute;*/
+    width: 600px;
+    height: 500px;
+    background-color: white;
+    border-radius: 10px;
+    border: 4px solid black;
+    padding: 10px;
+}
+
+.popup-form-title {
+    text-align: center;
+}
+
+.new-employee-popup {
+    width: auto;
+    /*width: 700px;*/
+    padding: 0px 20px 0px 20px;
+    height: 90%;
+    top: 5%;
+    transform: translate(-50%, 0);
+
+}
+
+/*.person-select.active {*/
+/*    display: block;*/
+/*    z-index: 2;*/
+/*}*/
+
+.person-select-button {
+
+}

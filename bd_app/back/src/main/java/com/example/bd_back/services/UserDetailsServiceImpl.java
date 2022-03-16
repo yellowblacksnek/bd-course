@@ -1,6 +1,7 @@
 package com.example.bd_back.services;
 
 import com.example.bd_back.configuration.CustomUser;
+import com.example.bd_back.entities.Employee;
 import com.example.bd_back.entities.Position;
 import com.example.bd_back.entities.UserEntity;
 import com.example.bd_back.repositories.EmployeesRepository;
@@ -49,16 +50,25 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private List<GrantedAuthority> buildUserAuthority(UserEntity user) {
 
         Set<GrantedAuthority> setAuths = new HashSet<>();
-        Set<Position> positions = emplRepo.findById(user.getEmployee()).get().getPositions();
+        Employee employee = emplRepo.findById(user.getEmployee()).get();
+        List<Position> positions = emplRepo.getPositions(user.getEmployee());
 
-        if(user.getUsername().equals("user")) {
-            String[] all = {"interface", "decryption", "analysis", "strategy", "operations", "customs"};
-            setAuths.addAll(Arrays.stream(all).map(SimpleGrantedAuthority::new).collect(Collectors.toList()));
-        } else {
-            for (Position pos : positions) {
-                setAuths.add(new SimpleGrantedAuthority(pos.getDepartment()));
-            }
+        setAuths.add(new SimpleGrantedAuthority("user"));
+
+//        if(user.getUsername().equals("user")) {
+//            String[] all = {"interface", "decryption", "analysis", "strategy", "operations", "customs"};
+//            setAuths.addAll(Arrays.stream(all).map(SimpleGrantedAuthority::new).collect(Collectors.toList()));
+//        } else {
+        for (Position pos : positions) {
+            setAuths.add(new SimpleGrantedAuthority(pos.getDepartment()));
+            setAuths.add(new SimpleGrantedAuthority(employee.getAccLvl()));
         }
+//        }
+//        for(GrantedAuthority a : setAuths) {
+//            System.out.println(a);
+//        }
+//        System.out.println(positions.size());
+
         return new ArrayList<>(setAuths);
     }
 }

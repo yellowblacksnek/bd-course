@@ -1,6 +1,7 @@
 package com.example.bd_back.entities;
 
 import javax.persistence.*;
+import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -12,15 +13,26 @@ public class VisaCheck {
     @Column(name = "visa_check_id", nullable = false)
     private Integer id;
 
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "visa_app_id", nullable = false)
-    private Integer visaApp;
+    @OneToOne(optional = false)
+    @JoinColumn(name = "visa_app_id", nullable = false)
+    private VisaApplication visaApp;
+
+    @Basic(optional = false)
+    @Column(name = "visa_app_id", nullable = false, updatable = false, insertable = false)
+    private Long visaAppId;
 
     @Column(name = "verdict_comment")
     private String comment;
 
     @Column(name = "is_finished", nullable = false)
     private Boolean isFinished = false;
+
+    @Column(name = "verdict")
+    @Enumerated(EnumType.STRING)
+    private VisaApplication.VisaVerdicts verdict;
+
+    @Column(name = "verdict_date")
+    private LocalDate verdictDate;
 
     @ManyToMany
     @JoinTable(name = "visa_check_employees",
@@ -44,6 +56,23 @@ public class VisaCheck {
         this.isFinished = isFinished;
     }
 
+
+    public LocalDate getVerdictDate() {
+        return verdictDate;
+    }
+
+    public void setVerdictDate(LocalDate verdictDate) {
+        this.verdictDate = verdictDate;
+    }
+
+    public VisaApplication.VisaVerdicts getVerdict() {
+        return verdict;
+    }
+
+    public void setVerdict(VisaApplication.VisaVerdicts verdict) {
+        this.verdict = verdict;
+    }
+
     public String getComment() {
         return comment;
     }
@@ -52,11 +81,14 @@ public class VisaCheck {
         this.comment = comment;
     }
 
-    public Integer getVisaApp() {
+    public Integer getVisaAppId() {
+        return visaApp.getId();
+    }
+    public VisaApplication getVisaApp() {
         return visaApp;
     }
 
-    public void setVisaApp(Integer visaApp) {
+    public void setVisaApp(VisaApplication visaApp) {
         this.visaApp = visaApp;
     }
 
